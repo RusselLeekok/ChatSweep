@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "ChatTidy",
+  "version": "0.3.0",
+  "description": "在 ChatGPT、Grok、Gemini、DeepSeek 和豆包中批量选择并删除当前可见的聊天。",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_title": "ChatTidy",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://grok.com/*",
+        "https://gemini.google.com/*",
+        "https://chat.deepseek.com/*",
+        "https://www.doubao.com/*",
+        "https://doubao.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}

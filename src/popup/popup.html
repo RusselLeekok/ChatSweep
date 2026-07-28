@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ChatTidy</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+        background: #f4f6f5;
+        color: #29332f;
+      }
+      * { box-sizing: border-box; }
+      body { width: 292px; margin: 0; padding: 16px; }
+      header { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
+      .mark {
+        width: 15px;
+        height: 15px;
+        border: 2px solid #647d74;
+        border-radius: 4px;
+        background: #a8bbb4;
+      }
+      h1 { margin: 0; font-size: 16px; }
+      #status {
+        min-height: 48px;
+        margin: 0 0 12px;
+        padding: 10px 11px;
+        border-radius: 12px;
+        background: #e6ece9;
+        color: #55635e;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      button {
+        width: 100%;
+        min-height: 40px;
+        border: 0;
+        border-radius: 11px;
+        background: #718b81;
+        color: #f7faf8;
+        font: inherit;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      button:disabled { cursor: not-allowed; opacity: .48; }
+      p { margin: 11px 2px 0; color: #79837f; font-size: 11px; text-align: center; }
+      @media (prefers-color-scheme: dark) {
+        :root { background: #29312e; color: #edf1ef; }
+        #status { background: #35413c; color: #c5d0cb; }
+      }
+    </style>
+  </head>
+  <body>
+    <header><span class="mark"></span><h1>ChatTidy</h1></header>
+    <div id="status" role="status">正在检查当前页面...</div>
+    <button id="open" type="button" disabled>选择聊天</button>
+    <p>所有操作只在当前页面中进行</p>
+    <script src="popup.js"></script>
+  </body>
+</html>
