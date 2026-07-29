@@ -10,6 +10,16 @@ ChatTidy 是一个本地运行的 Manifest V3 浏览器扩展，用来在多个 
 - DeepSeek
 - 豆包
 
+## 安装
+
+1. 点击 GitHub 仓库页面右上角的 **Code → Download ZIP**。
+2. 解压下载的源码包。
+3. 在 Chrome 中打开 `chrome://extensions/`，或在 Edge 中打开 `edge://extensions/`。
+4. 启用“开发者模式”。
+5. 点击“加载已解压的扩展程序”，选择源码包中的 `dist` 目录。
+
+`dist` 是已经构建好的扩展成品，普通用户不需要安装 Node.js 或运行构建命令。
+
 ## 设计原则
 
 - 只读取当前页面已渲染的侧栏聊天，不读取聊天正文。
@@ -27,7 +37,7 @@ npm install
 npm run check
 ```
 
-在 Chrome 或 Edge 中打开扩展管理页，启用开发者模式，选择“加载已解压的扩展程序”，然后选择 `dist` 目录。
+构建完成后，在 Chrome 或 Edge 的扩展管理页选择“加载已解压的扩展程序”，然后选择 `dist` 目录。
 
 ## 使用
 
