@@ -108,7 +108,7 @@ describe("ChatGPT controller native fast queue", () => {
         .toContain("已删除 2 条聊天");
     });
     expect(document.querySelector("#chattidy-root")?.textContent)
-      .toContain("v0.3.1");
+      .toContain("v0.3.5");
   });
 });
 

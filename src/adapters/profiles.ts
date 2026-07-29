@@ -67,7 +67,12 @@ export const PROFILES: SelectorProfile[] = [
       ...commonMenuTriggers,
       "button[id^='radix-']"
     ],
-    menuSurfaceSelectors: commonMenuSurfaces,
+    menuSurfaceSelectors: [
+      "[data-radix-popper-content-wrapper]",
+      "[data-slot='dropdown-menu-content']",
+      "[data-state='open'][data-side]",
+      ...commonMenuSurfaces
+    ],
     deleteActionSelectors: [
       "[role='menuitem'][data-testid*='delete' i]",
       "[role='menuitem'] .text-token-text-error",
@@ -100,11 +105,16 @@ export const PROFILES: SelectorProfile[] = [
     ],
     titleSelectors: ["[data-testid*='title' i]", "[class*='truncate']", "[class*='title' i]"],
     menuTriggerSelectors: [
+      "button[aria-label='备选方案'][aria-haspopup='menu']",
+      "[data-slot='dropdown-menu-trigger']",
       ...commonMenuTriggers,
-      "button",
-      "[role='button']"
     ],
-    menuSurfaceSelectors: commonMenuSurfaces,
+    menuSurfaceSelectors: [
+      "[data-radix-popper-content-wrapper]",
+      "[data-slot='dropdown-menu-content']",
+      "[data-state='open'][data-side]",
+      ...commonMenuSurfaces
+    ],
     deleteActionSelectors: [
       "button[aria-label='Delete']",
       "button.text-fg-danger",
@@ -118,6 +128,13 @@ export const PROFILES: SelectorProfile[] = [
     ],
     deleteKeywords: DELETE_WORDS,
     confirmKeywords: CONFIRM_WORDS,
+    deleteSelectorRequiresKeyword: true,
+    allowHeuristicMenuTrigger: true,
+    menuTriggerAppearsOnHover: true,
+    menuActivation: "pointerdown",
+    menuClickFallback: false,
+    deleteWithoutConfirmation: true,
+    denseSidebarOnly: true,
     extractKey: (href) => matchPath(href, [/\/c\/([^/?#]+)/i, /\/chat\/([^/?#]+)/i])
   },
   {

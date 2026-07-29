@@ -135,42 +135,63 @@ describe("Grok adapter compatibility", () => {
       <div class="grok-sidebar-shell">
         <section>
           <div id="grok-row">
-            <a href="/c/grok-current">
+            <a id="grok-open-chat" href="/c/grok-current">
               <span>Modern Healthy Lifestyle</span>
+              <button
+                id="grok-more"
+                aria-haspopup="menu"
+                aria-label="备选方案"
+                data-state="closed"
+                style="display: none"
+              ><svg aria-hidden="true"></svg></button>
             </a>
-            <button id="grok-more"><svg aria-hidden="true"></svg></button>
           </div>
+          <div><a href="/c/grok-two">Second sidebar chat</a></div>
+          <div><a href="/c/grok-three">Third sidebar chat</a></div>
         </section>
       </div>
+      <main>
+        <a href="/c/main-content-link">生成一张科比在中国高中教师门口被罚站的照片</a>
+      </main>
     `;
 
-    document.querySelector("#grok-more")?.addEventListener("click", () => {
-      const menu = document.createElement("div");
-      menu.setAttribute("role", "menu");
-      menu.innerHTML = `<button role="menuitem">Delete</button>`;
-      document.body.appendChild(menu);
-      menu.querySelector("button")?.addEventListener("click", () => {
-        menu.remove();
-        const dialog = document.createElement("div");
-        dialog.setAttribute("role", "alertdialog");
-        dialog.innerHTML = `<button>Cancel</button><button>Delete</button>`;
-        document.body.appendChild(dialog);
-        dialog.lastElementChild?.addEventListener("click", () => {
-          document.querySelector("#grok-row")?.remove();
-          dialog.remove();
+    const openChat = vi.fn();
+    document.querySelector("#grok-open-chat")?.addEventListener("click", openChat);
+    document.querySelector("#grok-more")?.addEventListener("pointerdown", () => {
+        const popup = document.createElement("div");
+        popup.className = "grok-floating-popup";
+        popup.innerHTML = `<div role="menuitem">Delete</div>`;
+        document.body.appendChild(popup);
+        popup.querySelector("[role='menuitem']")?.addEventListener("click", () => {
+          popup.remove();
+          window.setTimeout(() => {
+            document.querySelector("#grok-row")?.remove();
+          }, 80);
         });
-      });
     });
 
     const adapter = new SiteAdapter(profile!);
+    expect(adapter.listConversations().map((item) => item.key)).toEqual([
+      "grok-current",
+      "grok-two",
+      "grok-three"
+    ]);
     expect(adapter.probe()).toMatchObject({
-      conversationCount: 1,
+      conversationCount: 3,
       rowsWithMenuTrigger: 1,
       mode: "ready"
     });
 
-    const result = await adapter.deleteConversation("grok-current");
-    expect(result).toMatchObject({ success: true, stage: "verify" });
+    const result = await adapter.deleteConversation("grok-current", {
+      waitForRemoval: false
+    });
+    expect(result).toMatchObject({ success: true, stage: "submitted" });
+    expect(openChat).not.toHaveBeenCalled();
+
+    const [verified] = await adapter.verifyDeletedConversations([
+      { key: "grok-current", title: "Modern Healthy Lifestyle" }
+    ], 500);
+    expect(verified).toMatchObject({ success: true, stage: "verify" });
   });
 });
 

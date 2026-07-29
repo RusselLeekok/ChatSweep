@@ -5,6 +5,7 @@ import {
   getElementHref,
   getElementTitle,
   isElementUsable,
+  matchesKeyword,
   queryAllUnique,
   queryFirst,
   waitFor
@@ -27,6 +28,13 @@ export class SiteAdapter {
 
     for (const element of rows) {
       if (element.closest(`[${UI_ATTRIBUTE}]`)) continue;
+      if (
+        this.profile.denseSidebarOnly
+        && rows.length >= 3
+        && !this.isInDenseSidebarRegion(element)
+      ) {
+        continue;
+      }
       const href = getElementHref(element);
       const key = this.profile.extractKey(href);
       if (!key || byKey.has(key)) continue;
@@ -46,17 +54,16 @@ export class SiteAdapter {
   }
 
   findMenuTrigger(element: HTMLElement): HTMLElement | null {
-    const scopes: HTMLElement[] = [element];
-    let parent = element.parentElement;
-    for (let depth = 0; depth < 3 && parent && parent !== document.body; depth += 1) {
-      scopes.push(parent);
-      parent = parent.parentElement;
-    }
+    const scopes = this.getConversationScopes(element);
 
     for (const scope of scopes) {
       const trigger = queryAllUnique(scope, this.profile.menuTriggerSelectors)
-        .find((candidate) => !candidate.closest(`[${UI_ATTRIBUTE}]`));
+        .find((candidate) => this.isSafeMenuTrigger(candidate, element));
       if (trigger) return trigger;
+    }
+
+    if (this.profile.allowHeuristicMenuTrigger) {
+      return this.findHeuristicMenuTrigger(element, scopes);
     }
     return null;
   }
@@ -79,7 +86,7 @@ export class SiteAdapter {
       };
     }
 
-    if (rowsWithMenuTrigger === 0) {
+    if (rowsWithMenuTrigger === 0 && !this.profile.menuTriggerAppearsOnHover) {
       return {
         adapterId: this.profile.id,
         adapterLabel: this.profile.label,
@@ -114,10 +121,11 @@ export class SiteAdapter {
     }
 
     target.element.scrollIntoView({ block: "center", behavior: "auto" });
-    dispatchRevealEvents(target.element);
-    await delay(120);
-
-    const menuTrigger = this.findMenuTrigger(target.element);
+    this.revealConversationActions(target.element);
+    const menuTrigger = await waitFor(() => {
+      this.revealConversationActions(target.element);
+      return this.findMenuTrigger(target.element);
+    }, 1200, 60);
     if (!menuTrigger) {
       return this.failure(key, target.title, "open-menu", "找不到该聊天的操作菜单。");
     }
@@ -125,6 +133,7 @@ export class SiteAdapter {
     const surfacesBefore = new Set(
       queryAllUnique(document, this.profile.menuSurfaceSelectors)
     );
+    const globalDeleteActionsBefore = new Set(this.findGlobalDeleteActions());
     const findMenuSurface = () => {
       const surfaces = queryAllUnique(document, this.profile.menuSurfaceSelectors);
       return surfaces.find((surface) => !surfacesBefore.has(surface) && isElementUsable(surface))
@@ -138,21 +147,23 @@ export class SiteAdapter {
       menuTrigger.dispatchEvent(new PointerEventConstructor("pointerdown", {
         bubbles: true,
         cancelable: true,
-        button: 0
+        button: 0,
+        pointerType: "mouse",
+        isPrimary: true
       }));
       menuSurface = await waitFor(findMenuSurface, 160, 20);
     } else {
       menuTrigger.click();
-      menuSurface = await waitFor(findMenuSurface);
+      menuSurface = await waitFor(findMenuSurface, 500, 25);
     }
 
-    if (!menuSurface && this.profile.menuActivation === "pointerdown") {
+    if (
+      !menuSurface
+      && this.profile.menuActivation === "pointerdown"
+      && this.profile.menuClickFallback !== false
+    ) {
       menuTrigger.click();
-      menuSurface = await waitFor(findMenuSurface);
-    }
-
-    if (!menuSurface) {
-      return this.failure(key, target.title, "open-menu", "操作菜单没有出现。");
+      menuSurface = await waitFor(findMenuSurface, 500, 25);
     }
 
     const deleteAction = await waitFor(() => {
@@ -167,11 +178,14 @@ export class SiteAdapter {
         const action = findSemanticAction(
           surface,
           this.profile.deleteActionSelectors,
-          this.profile.deleteKeywords
+          this.profile.deleteKeywords,
+          this.profile.deleteSelectorRequiresKeyword
         );
         if (action) return action;
       }
-      return null;
+
+      return this.findGlobalDeleteActions()
+        .find((candidate) => !globalDeleteActionsBefore.has(candidate)) ?? null;
     }, 1800, 40);
 
     if (!deleteAction) {
@@ -181,6 +195,43 @@ export class SiteAdapter {
 
     const dialogsBefore = new Set(queryAllUnique(document, this.profile.dialogSelectors));
     deleteAction.click();
+
+    if (this.profile.deleteWithoutConfirmation) {
+      if (options.waitForRemoval === false) {
+        const submitted = await waitFor(() => {
+          if (!this.resolveConversation(key)) return "removed" as const;
+          if (
+            !deleteAction.isConnected
+            || !isElementUsable(deleteAction)
+            || (
+              menuSurface
+              && (!menuSurface.isConnected || !isElementUsable(menuSurface))
+            )
+          ) {
+            return "submitted" as const;
+          }
+          return null;
+        }, 2500, 30);
+
+        if (submitted === "removed") return this.success(key, target.title);
+        if (submitted === "submitted") return this.submitted(key, target.title);
+        return this.failure(
+          key,
+          target.title,
+          "find-delete",
+          "已点击删除，但操作菜单没有及时关闭。"
+        );
+      }
+
+      const removed = await waitFor(
+        () => this.resolveConversation(key) ? null : true,
+        8000,
+        100
+      );
+      return removed
+        ? this.success(key, target.title)
+        : this.failure(key, target.title, "verify", "站点未在超时前移除该聊天。");
+    }
 
     const nextStep = await waitFor(() => {
       if (!this.resolveConversation(key)) return { removed: true as const };
@@ -313,6 +364,128 @@ export class SiteAdapter {
       return;
     }
     document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+  }
+
+  private getConversationScopes(element: HTMLElement): HTMLElement[] {
+    const scopes: HTMLElement[] = [element];
+    let parent = element.parentElement;
+    for (let depth = 0; depth < 4 && parent && parent !== document.body; depth += 1) {
+      const nestedConversations = queryAllUnique(parent, this.profile.itemSelectors)
+        .filter((candidate) => !candidate.closest(`[${UI_ATTRIBUTE}]`));
+      if (nestedConversations.length > 1) break;
+      scopes.push(parent);
+      parent = parent.parentElement;
+    }
+    return scopes;
+  }
+
+  private revealConversationActions(element: HTMLElement): void {
+    for (const scope of this.getConversationScopes(element)) {
+      dispatchRevealEvents(scope);
+    }
+  }
+
+  private findHeuristicMenuTrigger(
+    element: HTMLElement,
+    scopes: HTMLElement[]
+  ): HTMLElement | null {
+    const candidates = new Set<HTMLElement>();
+    for (const scope of scopes) {
+      queryAllUnique(scope, ["button", "[role='button']"])
+        .forEach((candidate) => candidates.add(candidate));
+    }
+
+    let best: { element: HTMLElement; score: number } | null = null;
+    const targetRect = element.getBoundingClientRect();
+    for (const candidate of candidates) {
+      if (!candidate.isConnected || candidate.closest(`[${UI_ATTRIBUTE}]`)) continue;
+      if (candidate === element || candidate.contains(element)) continue;
+      if (candidate.hidden || candidate.getAttribute("aria-hidden") === "true") continue;
+
+      const text = (candidate.textContent ?? "").replace(/\s+/g, " ").trim();
+      const attributes = [
+        candidate.id,
+        candidate.className,
+        candidate.getAttribute("aria-label"),
+        candidate.getAttribute("data-testid"),
+        candidate.getAttribute("data-test-id"),
+        candidate.getAttribute("data-slot")
+      ].filter((value): value is string => typeof value === "string").join(" ").toLowerCase();
+
+      let score = 0;
+      const popup = candidate.getAttribute("aria-haspopup");
+      if (popup === "menu" || popup === "true") score += 100;
+      if (candidate.hasAttribute("aria-expanded")) score += 45;
+      if (candidate.hasAttribute("data-state")) score += 35;
+      if (/(menu|more|option|action|overflow|ellipsis|dropdown)/i.test(attributes)) {
+        score += 65;
+      }
+      if (candidate.querySelector("svg") && text.length <= 2) score += 20;
+      if (text.length === 0) score += 10;
+      if (text.length > 24 || text.includes(element.textContent?.trim() ?? "\u0000")) {
+        score -= 80;
+      }
+
+      const rect = candidate.getBoundingClientRect();
+      if (rect.width > 0 && rect.width <= 64 && rect.height <= 64) score += 20;
+      if (
+        targetRect.width > 0
+        && rect.left >= targetRect.left + targetRect.width * 0.55
+      ) {
+        score += 15;
+      }
+
+      if (score >= 20 && (!best || score > best.score)) {
+        best = { element: candidate, score };
+      }
+    }
+    return best?.element ?? null;
+  }
+
+  private findGlobalDeleteActions(): HTMLElement[] {
+    return queryAllUnique(document, [
+      ...this.profile.deleteActionSelectors,
+      "[role='menuitem']",
+      "[data-radix-collection-item]",
+      "[data-slot*='menu-item']",
+      "button",
+      "[role='button']"
+    ]).filter((candidate) =>
+      !candidate.closest(`[${UI_ATTRIBUTE}]`)
+      && isElementUsable(candidate)
+      && matchesKeyword(candidate, this.profile.deleteKeywords)
+    );
+  }
+
+  private isInDenseSidebarRegion(element: HTMLElement): boolean {
+    const elementRect = element.getBoundingClientRect();
+    const maximumSidebarLeft = Math.min(600, window.innerWidth * 0.4);
+    if (elementRect.width > 0 && elementRect.left > maximumSidebarLeft) return false;
+
+    let current = element.parentElement;
+    for (let depth = 0; depth < 7 && current && current !== document.body; depth += 1) {
+      const conversationLinks = current.querySelectorAll(
+        "a[href^='/c/'], a[href^='/chat/']"
+      ).length;
+      if (conversationLinks >= 2) {
+        const rect = current.getBoundingClientRect();
+        if (rect.width === 0 || rect.width <= 600) return true;
+      }
+      current = current.parentElement;
+    }
+    return false;
+  }
+
+  private isSafeMenuTrigger(
+    candidate: HTMLElement,
+    conversationElement: HTMLElement
+  ): boolean {
+    if (!candidate.isConnected || candidate.closest(`[${UI_ATTRIBUTE}]`)) return false;
+    if (candidate === conversationElement || candidate.contains(conversationElement)) {
+      return false;
+    }
+    if (candidate.hidden || candidate.getAttribute("aria-hidden") === "true") return false;
+    return true;
   }
 
   private success(key: string, title: string): DeleteResult {

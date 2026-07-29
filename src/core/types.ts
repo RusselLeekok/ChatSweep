@@ -22,7 +22,13 @@ export interface SelectorProfile {
   confirmKeywords: string[];
   interDeleteDelayMs?: number;
   menuActivation?: "click" | "pointerdown";
+  menuClickFallback?: boolean;
   confirmSelectorRequiresKeyword?: boolean;
+  deleteSelectorRequiresKeyword?: boolean;
+  allowHeuristicMenuTrigger?: boolean;
+  menuTriggerAppearsOnHover?: boolean;
+  deleteWithoutConfirmation?: boolean;
+  denseSidebarOnly?: boolean;
   extractKey: (href: string) => string | null;
 }
 
