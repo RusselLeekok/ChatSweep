@@ -1,6 +1,6 @@
 {
   "name": "chattidy",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "license": "MIT",
   "description": "在多个 AI 聊天网站上安全地批量选择并删除当前可见的聊天记录。",

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChatTidy",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "在 ChatGPT、Grok、Gemini、DeepSeek 和豆包中批量选择并删除当前可见的聊天。",
   "permissions": ["activeTab", "scripting"],
   "action": {

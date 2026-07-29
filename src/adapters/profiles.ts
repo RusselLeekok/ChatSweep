@@ -89,13 +89,21 @@ export const PROFILES: SelectorProfile[] = [
     label: "Grok",
     hostnames: ["grok.com"],
     itemSelectors: [
+      "[data-sidebar] a[href^='/c/']",
+      "[class*='sidebar' i] a[href^='/c/']",
       "nav a[href^='/c/']",
       "aside a[href^='/c/']",
       "nav a[href*='/chat/']",
-      "aside a[href*='/chat/']"
+      "aside a[href*='/chat/']",
+      "a[href^='/c/']",
+      "a[href^='/chat/']"
     ],
     titleSelectors: ["[data-testid*='title' i]", "[class*='truncate']", "[class*='title' i]"],
-    menuTriggerSelectors: commonMenuTriggers,
+    menuTriggerSelectors: [
+      ...commonMenuTriggers,
+      "button",
+      "[role='button']"
+    ],
     menuSurfaceSelectors: commonMenuSurfaces,
     deleteActionSelectors: [
       "button[aria-label='Delete']",
@@ -159,6 +167,8 @@ export const PROFILES: SelectorProfile[] = [
     ],
     deleteKeywords: DELETE_WORDS,
     confirmKeywords: CONFIRM_WORDS,
+    confirmSelectorRequiresKeyword: true,
+    interDeleteDelayMs: 650,
     extractKey: (href) => matchPath(href, [/\/app\/([^/?#]+)/i])
   },
   {

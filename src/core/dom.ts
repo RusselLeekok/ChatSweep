@@ -58,10 +58,27 @@ export function queryFirst(
 }
 
 export function isElementUsable(element: HTMLElement): boolean {
-  if (element.hidden || element.getAttribute("aria-hidden") === "true") return false;
-  if (element.getAttribute("data-state") === "closed") return false;
-  const style = window.getComputedStyle(element);
-  return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+  if (!element.isConnected) return false;
+  if (element.matches(":disabled") || element.getAttribute("aria-disabled") === "true") {
+    return false;
+  }
+
+  let current: HTMLElement | null = element;
+  while (current) {
+    if (current.hidden || current.getAttribute("aria-hidden") === "true") return false;
+    if (current.getAttribute("data-state") === "closed") return false;
+    if (current.hasAttribute("inert")) return false;
+    const style = window.getComputedStyle(current);
+    if (
+      style.display === "none"
+      || style.visibility === "hidden"
+      || style.opacity === "0"
+    ) {
+      return false;
+    }
+    current = current.parentElement;
+  }
+  return true;
 }
 
 export function normalizedText(element: Element): string {
@@ -80,9 +97,13 @@ export function matchesKeyword(element: Element, keywords: readonly string[]): b
 export function findSemanticAction(
   root: ParentNode,
   selectors: readonly string[],
-  keywords: readonly string[]
+  keywords: readonly string[],
+  requireKeywordForSelectors = false
 ): HTMLElement | null {
-  const byAttribute = queryAllUnique(root, selectors).find(isElementUsable);
+  const byAttribute = queryAllUnique(root, selectors).find((candidate) =>
+    isElementUsable(candidate)
+    && (!requireKeywordForSelectors || matchesKeyword(candidate, keywords))
+  );
   if (byAttribute) return byAttribute;
 
   const candidates = queryAllUnique(root, [

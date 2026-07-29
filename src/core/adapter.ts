@@ -214,7 +214,8 @@ export class SiteAdapter {
         const action = findSemanticAction(
           candidate,
           this.profile.confirmActionSelectors,
-          this.profile.confirmKeywords
+          this.profile.confirmKeywords,
+          this.profile.confirmSelectorRequiresKeyword
         );
         if (action) return action;
       }

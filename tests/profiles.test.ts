@@ -105,7 +105,13 @@ describe("Gemini adapter compatibility", () => {
           window.setTimeout(() => {
             const actions = overlay.querySelector(".mat-mdc-dialog-actions");
             if (!actions) return;
-            actions.innerHTML = `<button>取消</button><button>删除</button>`;
+            actions.innerHTML = `
+              <button data-test-id="confirm-dialog-cancel">取消</button>
+              <button data-test-id="confirm-dialog-delete">删除</button>
+            `;
+            actions.firstElementChild?.addEventListener("click", () => {
+              overlay.remove();
+            });
             actions.lastElementChild?.addEventListener("click", () => {
               document.querySelector("#gemini-row")?.remove();
               overlay.remove();
@@ -116,6 +122,54 @@ describe("Gemini adapter compatibility", () => {
 
     const adapter = new SiteAdapter(profile!);
     const result = await adapter.deleteConversation("gemini-one");
+    expect(result).toMatchObject({ success: true, stage: "verify" });
+    expect(document.querySelector("#gemini-row")).toBeNull();
+  });
+});
+
+describe("Grok adapter compatibility", () => {
+  const profile = PROFILES.find((candidate) => candidate.id === "grok");
+
+  it("recognizes the current non-semantic sidebar and unlabeled row action button", async () => {
+    document.body.innerHTML = `
+      <div class="grok-sidebar-shell">
+        <section>
+          <div id="grok-row">
+            <a href="/c/grok-current">
+              <span>Modern Healthy Lifestyle</span>
+            </a>
+            <button id="grok-more"><svg aria-hidden="true"></svg></button>
+          </div>
+        </section>
+      </div>
+    `;
+
+    document.querySelector("#grok-more")?.addEventListener("click", () => {
+      const menu = document.createElement("div");
+      menu.setAttribute("role", "menu");
+      menu.innerHTML = `<button role="menuitem">Delete</button>`;
+      document.body.appendChild(menu);
+      menu.querySelector("button")?.addEventListener("click", () => {
+        menu.remove();
+        const dialog = document.createElement("div");
+        dialog.setAttribute("role", "alertdialog");
+        dialog.innerHTML = `<button>Cancel</button><button>Delete</button>`;
+        document.body.appendChild(dialog);
+        dialog.lastElementChild?.addEventListener("click", () => {
+          document.querySelector("#grok-row")?.remove();
+          dialog.remove();
+        });
+      });
+    });
+
+    const adapter = new SiteAdapter(profile!);
+    expect(adapter.probe()).toMatchObject({
+      conversationCount: 1,
+      rowsWithMenuTrigger: 1,
+      mode: "ready"
+    });
+
+    const result = await adapter.deleteConversation("grok-current");
     expect(result).toMatchObject({ success: true, stage: "verify" });
   });
 });

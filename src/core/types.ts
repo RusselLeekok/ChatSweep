@@ -22,6 +22,7 @@ export interface SelectorProfile {
   confirmKeywords: string[];
   interDeleteDelayMs?: number;
   menuActivation?: "click" | "pointerdown";
+  confirmSelectorRequiresKeyword?: boolean;
   extractKey: (href: string) => string | null;
 }
 
