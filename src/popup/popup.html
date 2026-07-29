@@ -14,13 +14,7 @@
       * { box-sizing: border-box; }
       body { width: 292px; margin: 0; padding: 16px; }
       header { display: flex; align-items: center; gap: 9px; margin-bottom: 14px; }
-      .mark {
-        width: 15px;
-        height: 15px;
-        border: 2px solid #647d74;
-        border-radius: 4px;
-        background: #a8bbb4;
-      }
+      .mark { width: 24px; height: 24px; }
       h1 { margin: 0; font-size: 16px; }
       #status {
         min-height: 48px;
@@ -52,7 +46,7 @@
     </style>
   </head>
   <body>
-    <header><span class="mark"></span><h1>ChatTidy</h1></header>
+    <header><img class="mark" src="icons/chattidy-32.png" alt=""><h1>ChatTidy</h1></header>
     <div id="status" role="status">正在检查当前页面...</div>
     <button id="open" type="button" disabled>选择聊天</button>
     <p>所有操作只在当前页面中进行</p>

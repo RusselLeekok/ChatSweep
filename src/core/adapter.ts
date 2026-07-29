@@ -94,7 +94,7 @@ export class SiteAdapter {
         conversationCount: conversations.length,
         rowsWithMenuTrigger,
         mode: "safe",
-        note: "检测到聊天，但删除菜单结构不匹配。已进入安全模式。"
+        note: "检测到聊天，但删除菜单结构不匹配。页面可能未加载完整，请刷新页面后再试。"
       };
     }
 
@@ -105,9 +105,7 @@ export class SiteAdapter {
       conversationCount: conversations.length,
       rowsWithMenuTrigger,
       mode: "ready",
-      note: this.profile.id === "chatgpt"
-        ? `已检测到 ${conversations.length} 条当前可见聊天，可使用前台快速队列。`
-        : `已检测到 ${conversations.length} 条当前可见聊天。`
+      note: `已检测到 ${conversations.length} 条当前可见聊天。`
     };
   }
 

@@ -365,7 +365,7 @@ describe("ChatGPT 适配器", () => {
       mode: "safe",
       rowsWithMenuTrigger: 0
     });
-    expect(adapter.probe().note).toContain("安全模式");
+    expect(adapter.probe().note).toContain("请刷新页面后再试");
   });
 
   it("通过原生菜单和确认窗口删除并验证目标消失", async () => {

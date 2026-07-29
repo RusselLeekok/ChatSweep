@@ -1,0 +1,63 @@
+name: 发布扩展
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: 构建并发布
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v6
+
+      - name: 配置 Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: 安装依赖
+        run: npm ci
+
+      - name: 核对版本号
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+          MANIFEST_VERSION="$(node -p "require('./manifest.json').version")"
+
+          if [ "$VERSION" != "$PACKAGE_VERSION" ] || [ "$VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "标签版本 $VERSION 与 package.json ($PACKAGE_VERSION) 或 manifest.json ($MANIFEST_VERSION) 不一致。"
+            exit 1
+          fi
+
+      - name: 测试并构建
+        run: npm run check
+
+      - name: 打包扩展
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          (
+            cd dist
+            zip -r "../ChatSweep-${VERSION}.zip" .
+          )
+
+      - name: 创建 GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            "ChatSweep-${VERSION}.zip#ChatSweep ${VERSION} 浏览器扩展" \
+            --verify-tag \
+            --title "ChatSweep ${VERSION}" \
+            --generate-notes

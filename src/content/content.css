@@ -17,6 +17,10 @@
   text-rendering: optimizeLegibility;
 }
 
+#chattidy-root[hidden] {
+  display: none !important;
+}
+
 #chattidy-root button,
 #chattidy-root input {
   font: inherit;
@@ -100,6 +104,13 @@
   font-size: 12px;
 }
 
+.chattidy-window-actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  align-items: center;
+}
+
 .chattidy-icon-button {
   width: 30px;
   height: 30px;
@@ -116,17 +127,27 @@
   background: #e7ecea;
 }
 
+.chattidy-icon-button-close:hover {
+  color: #955f52;
+  background: #f1e4df;
+}
+
 .chattidy-health {
   display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
   margin: 0 12px;
   padding: 10px 11px;
   border-radius: 12px;
   color: #4c5a55;
   background: #e8eeeb;
   font-size: 12px;
+}
+
+.chattidy-health > span {
+  display: block;
+  line-height: 1.5;
 }
 
 .chattidy-health-safe {
@@ -140,13 +161,20 @@
 }
 
 .chattidy-health button {
-  flex: none;
-  padding: 0;
-  border: 0;
+  align-self: flex-start;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid #c9d7d1;
+  border-radius: 8px;
   color: #506e64;
-  background: transparent;
-  font-size: 12px;
+  background: #f5f8f6;
+  font-size: 11px;
+  font-weight: 650;
   cursor: pointer;
+}
+
+.chattidy-health button:hover {
+  background: #edf3f0;
 }
 
 .chattidy-count {
@@ -452,6 +480,16 @@
   .chattidy-result-warning {
     color: #d4c8bb;
     background: #403a34;
+  }
+
+  .chattidy-health button {
+    border-color: #51605a;
+    color: #d5dfda;
+    background: #2e3834;
+  }
+
+  .chattidy-health button:hover {
+    background: #394640;
   }
 
   .chattidy-button-quiet,

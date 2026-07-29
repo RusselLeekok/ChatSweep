@@ -2,6 +2,7 @@ import { BUILD_VERSION } from "../version";
 
 const statusElement = document.querySelector<HTMLDivElement>("#status");
 const openButton = document.querySelector<HTMLButtonElement>("#open");
+let primaryAction: "open" | "reload" = "open";
 
 async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -130,6 +131,9 @@ async function initialize(): Promise<void> {
 
   if (!statusElement || !openButton) return;
   if (!response?.ok || !response.report) {
+    primaryAction = "open";
+    openButton.textContent = "选择聊天";
+    openButton.disabled = true;
     statusElement.textContent = isSupportedUrl(tab?.url)
       ? "未能连接当前页面，请刷新后重试。"
       : "当前页面不是 ChatTidy 支持的 AI 网站。";
@@ -138,11 +142,25 @@ async function initialize(): Promise<void> {
 
   const report = response.report;
   statusElement.textContent = `${report.adapterLabel} · v${BUILD_VERSION}：${report.note}`;
-  openButton.disabled = report.mode === "safe";
+  if (report.mode === "safe") {
+    primaryAction = "reload";
+    openButton.textContent = "刷新页面再试";
+    openButton.disabled = false;
+  } else {
+    primaryAction = "open";
+    openButton.textContent = "选择聊天";
+    openButton.disabled = false;
+  }
 }
 
 openButton?.addEventListener("click", async () => {
-  await sendToTab(await getActiveTab(), { type: "chattidy:open" });
+  const tab = await getActiveTab();
+  if (primaryAction === "reload") {
+    if (tab?.id) await chrome.tabs.reload(tab.id);
+    window.close();
+    return;
+  }
+  await sendToTab(tab, { type: "chattidy:open" });
   window.close();
 });
 

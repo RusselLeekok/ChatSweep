@@ -53,13 +53,15 @@ class ChatTidyController {
       if (!action) return;
 
       if (action === "expand") this.startSelection();
-      if (action === "close") this.stopSelection();
+      if (action === "collapse") this.collapse();
+      if (action === "close") this.dismiss();
       if (action === "toggle-all") this.toggleAll();
       if (action === "open-delete") this.openDeleteDialog();
       if (action === "cancel-delete") this.closeDeleteDialog();
       if (action === "confirm-delete") void this.runDelete();
       if (action === "stop-delete") this.cancelRequested = true;
       if (action === "refresh") this.refresh();
+      if (action === "reload-page") location.reload();
     });
 
     this.root.addEventListener("change", (event) => {
@@ -127,17 +129,31 @@ class ChatTidyController {
 
   private startSelection(): void {
     if (!this.adapter) return;
+    this.root.hidden = false;
     this.selectionMode = true;
     this.lastResults = null;
     this.root.dataset.expanded = "true";
     this.refresh();
   }
 
-  private stopSelection(): void {
+  private dismiss(): void {
     if (this.deleting) return;
     this.selectionMode = false;
     this.selected.clear();
     this.lastResults = null;
+    this.root.dataset.dialog = "false";
+    this.root.dataset.expanded = "false";
+    this.removeCheckboxes();
+    this.root.replaceChildren();
+    this.root.hidden = true;
+  }
+
+  private collapse(): void {
+    if (this.deleting) return;
+    this.selectionMode = false;
+    this.selected.clear();
+    this.lastResults = null;
+    this.root.dataset.dialog = "false";
     this.root.dataset.expanded = "false";
     this.removeCheckboxes();
     this.render();
@@ -336,18 +352,19 @@ class ChatTidyController {
               <strong>ChatTidy</strong>
               <small>v${BUILD_VERSION}</small>
             </div>
-            <span class="chattidy-site">${
-              this.adapter?.profile.id === "chatgpt"
-                ? "ChatGPT · 前台快速队列"
-                : escapeHtml(report?.adapterLabel ?? "不支持的网站")
-            }</span>
+            <span class="chattidy-site">${escapeHtml(report?.adapterLabel ?? "不支持的网站")}</span>
           </div>
-          <button class="chattidy-icon-button" type="button" data-action="close" aria-label="关闭选择模式" ${this.deleting ? "disabled" : ""}>×</button>
+          <div class="chattidy-window-actions" role="group" aria-label="面板控制">
+            <button class="chattidy-icon-button" type="button" data-action="collapse" aria-label="收起 ChatTidy" title="收起 ChatTidy" ${this.deleting ? "disabled" : ""}>−</button>
+            <button class="chattidy-icon-button chattidy-icon-button-close" type="button" data-action="close" aria-label="关闭 ChatTidy" title="关闭 ChatTidy" ${this.deleting ? "disabled" : ""}>×</button>
+          </div>
         </header>
 
         <div class="chattidy-health chattidy-health-${modeClass}">
           <span>${escapeHtml(report?.note ?? "当前网站暂不支持。")}</span>
-          <button type="button" data-action="refresh">重新检测</button>
+          <button type="button" data-action="${report?.mode === "safe" ? "reload-page" : "refresh"}">
+            ${report?.mode === "safe" ? "刷新页面" : "重新检测"}
+          </button>
         </div>
 
         <div class="chattidy-count">

@@ -11,7 +11,8 @@ async function copyStaticFiles() {
   await Promise.all([
     cp(resolve(root, "manifest.json"), resolve(dist, "manifest.json")),
     cp(resolve(root, "src/popup/popup.html"), resolve(dist, "popup.html")),
-    cp(resolve(root, "src/content/content.css"), resolve(dist, "content.css"))
+    cp(resolve(root, "src/content/content.css"), resolve(dist, "content.css")),
+    cp(resolve(root, "assets/icons"), resolve(dist, "icons"), { recursive: true })
   ]);
 }
 
